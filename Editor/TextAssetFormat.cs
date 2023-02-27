@@ -10,7 +10,6 @@ namespace TextAssetInspectorEdit.Editor
     public class TextAssetFormat
     {
         public string FileExtension;
-        public TextAssetReplaceData[] ReplaceData;
 
         public TextAssetFormat()
         {
@@ -26,9 +25,34 @@ namespace TextAssetInspectorEdit.Editor
             return string.Equals(extension, FileExtension, StringComparison.InvariantCultureIgnoreCase);
         }
 
-        public void CreateInspectorGUI(VisualElement root, TextAssetEditor editor)
+        public TextAssetFormatter CreateFormatter(TextAssetEditor editor) => new TextAssetFormatter(this, editor);
+    }
+
+    public class TextAssetFormatter
+    {
+        string undoName;
+        TextAssetEditor editor;
+        TextAssetFormat format;
+        TextField field;
+
+        public TextAssetFormatter(TextAssetFormat format, TextAssetEditor editor)
         {
-            TextField field = new TextField()
+            this.editor = editor;
+            this.format = format;
+            undoName = $"edit TextAsset {editor.target.name}";
+        }
+
+        public void CreateInspectorGUI(VisualElement root)
+        {
+            var layout = new VerticalLayout();
+            root.Add(layout);
+            var lineNumbers = new Label("Line Numbers");
+            layout.Add(lineNumbers);
+            Rect rect = lineNumbers.layout;
+            rect.width = 10;
+            lineNumbers.style.maxWidth = new StyleLength(45);
+
+            field = new TextField()
             {
                 multiline = true,
                 isDelayed = true
@@ -38,35 +62,20 @@ namespace TextAssetInspectorEdit.Editor
 
             field.labelElement.visible = false;
 
-            void OnChangeEventLocal(ChangeEvent<string> evt)
-            {
-                OnChangeEvent(evt, editor, field);
-            }
+            field.RegisterCallback<ChangeEvent<string>>(OnChangeEvent);
+            layout.Add(field);
 
-            field.RegisterCallback<ChangeEvent<string>>(OnChangeEventLocal);
-            root.Add(field);
+            Undo.undoRedoEvent -= UndoRedoCallback;
+            Undo.undoRedoEvent += UndoRedoCallback;
 
-            void UndoRedoCallbackLocal(in UndoRedoInfo undo)
-            {
-                UndoRedoCallback(undo, $"edit TextAsset {editor.target.name}", editor, field);
-            }
-            Undo.undoRedoEvent -= UndoRedoCallbackLocal;
-            Undo.undoRedoEvent += UndoRedoCallbackLocal;
-
-            var button = new Button(RepaintLocal);
+            var button = new Button(Repaint);
             button.text = "Repaint";
-            root.Add(button);
 
-            void RepaintLocal()
-            {
-                Repaint(editor, field);
-            }
-
-            editor.OnNeedRepaint -= RepaintLocal;
-            editor.OnNeedRepaint += RepaintLocal;
+            editor.OnNeedRepaint -= Repaint;
+            editor.OnNeedRepaint += Repaint;
         }
 
-        void UndoRedoCallback(in UndoRedoInfo undo, string undoName, TextAssetEditor editor, TextField field)
+        void UndoRedoCallback(in UndoRedoInfo undo)
         {
             if (undo.undoName == undoName)
             {
@@ -80,7 +89,7 @@ namespace TextAssetInspectorEdit.Editor
             }
         }
 
-        void OnChangeEvent(ChangeEvent<string> evt, TextAssetEditor editor, TextField field)
+        void OnChangeEvent(ChangeEvent<string> evt)
         {
             TextAssetEditor.SaveUndoContext.SavedText = (editor.target as TextAsset).text;
             Undo.RecordObject(TextAssetEditor.SaveUndoContext, $"edit TextAsset {editor.target.name}");
@@ -92,11 +101,21 @@ namespace TextAssetInspectorEdit.Editor
             field.SetValueWithoutNotify(AssetDatabase.LoadAssetAtPath<TextAsset>(path).text);
         }
 
-        public void Repaint(TextAssetEditor editor, TextField field)
+        public void Repaint()
         {
             string path = AssetDatabase.GetAssetPath(editor.target);
             AssetDatabase.ImportAsset(path);
             field.SetValueWithoutNotify(AssetDatabase.LoadAssetAtPath<TextAsset>(path).text);
+        }
+    }
+
+    public class VerticalLayout : VisualElement
+    {
+        public VerticalLayout()
+        {
+            name = nameof(VerticalLayout);
+            style.flexDirection = FlexDirection.Column;
+            style.flexGrow = 1;
         }
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -53,11 +52,12 @@ namespace TextAssetInspectorEdit.Editor
                     }
                 }));
 
+                
                 foreach (TextAssetFormat format in TextAssetFormats.AllFormats)
                 {
                     if (format.ExtensionMatch(extension))
                     {
-                        format.CreateInspectorGUI(root, this);
+                        format.CreateFormatter(this).CreateInspectorGUI(root);
                         break;
                     }
                 }
