@@ -2,11 +2,16 @@
 Override TextAsset Inspector, allowing to immedietly edit its content
 ![](https://github.com/mitay-walle/com.mitay-walle.text-asset-inspector-edit/blob/master/Documentation~/InspectorPreview.png)
 
+# Overview:
+- full text view
+- edit
+- line numbers
+- filter visible lines
+
 # TODO:
 - undo
-- search/edit line
+- edit filtered lines
 - custom importer implementation
-- line numbers
 
 
 
