@@ -1,118 +1,41 @@
-using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
-[CustomEditor(typeof(TextAsset))]
-public class TextAssetEditor : Editor
+namespace TextAssetInspectorEdit.Editor
 {
-
-    public override void OnInspectorGUI()
+    [CustomEditor(typeof(TextAsset))]
+    public class TextAssetEditor : UnityEditor.Editor
     {
-        string path = AssetDatabase.GetAssetPath(target);
 
-        if (string.IsNullOrEmpty(path)) { return; }
-
-        if (path.EndsWith(".md"))
+        public override void OnInspectorGUI()
         {
-            MdInspectorGUI(path);
         }
-        else
-        {
-            base.OnInspectorGUI();
-        }
-    }
 
-    private static void MdInspectorGUI(string path)
-    {
-        EditorStyles.label.wordWrap = true;
-        EditorStyles.label.richText = true;
-
-        // Handle any problems that might arise when reading the text
-        try
+        public override VisualElement CreateInspectorGUI()
         {
-            // Create a new StreamReader, tell it which file to read and what encoding the file was saved as
-            // Immediately clean up the reader after this block of code is done.
-            // You generally use the "using" statement for potentially memory-intensive objects
-            // instead of relying on garbage collection.
-            // (Do not confuse this with the using directive for namespace at the  beginning of a class!)
-            using (var reader = new StreamReader(path))
+            var extension = Path.GetExtension(AssetDatabase.GetAssetPath(target));
+
+            VisualElement root = new VisualElement();
+
+            
+            if (string.IsNullOrEmpty(extension))
+            {
+                root.Add(new IMGUIContainer(base.OnInspectorGUI));
+            }
+            else
+            {
+                foreach (TextAssetFormat format in TextAssetFormats.AllFormats)
                 {
-                    // While there's lines left in the text file, do this:
-                    string line;
-                    do
+                    if (format.ExtensionMatch(extension))
                     {
-                        line = reader.ReadLine();
-
-                        if (line != null)
-                        {
-                            //line = CommonMark.CommonMarkConverter.Convert(line);
-                            CleanUpHtml(line);
-                        }
+                        format.CreateInspectorGUI(root,this);
+                        break;
                     }
-                    while (line != null);
-
-                    // Done reading, close the reader and return true to broadcast success
-                    reader.Close();
                 }
             }
-            // If anything broke in the try block, we throw an exception with information on what didn't work
-            catch (Exception e)
-            {
-                Debug.LogErrorFormat("{0}\n", e.Message);
-            }
-        }
-
-        private static void CleanUpHtml(string line)
-        {
-            if (line.Contains("<hr />"))
-            {
-                EditorGUILayout.Separator();
-                return;
-            }
-
-            line = line.Replace("&quot;", "\"");
-            line = line.Replace("&bull;", "•");
-            line = line.Replace("&trade;", "™");
-            line = line.Replace("&copy;", "Ⓒ");
-            line = line.Replace("&sum;", "∑");
-            line = line.Replace("&prod;", "∏");
-            line = line.Replace("&ni;", "∋");
-            line = line.Replace("&notin;", "∉");
-            line = line.Replace("&isin;", "∈");
-            line = line.Replace("&nabla;", "∇");
-            line = line.Replace("&empty;", "∅");
-            line = line.Replace("&exist;", "∃");
-            line = line.Replace("&part;", "∂");
-            line = line.Replace("&forall;", "∀");
-            line = line.Replace("&forall;", "Δ");
-
-            // <h1> </h1> etc...
-            line = line.Replace("<h1>", "<size=18>");
-            line = line.Replace("</h1>", "</size>");
-
-            line = line.Replace("<p>", "");
-            line = line.Replace("</p>", "\n");
-
-            line = line.Replace("<em>", "<i>");
-            line = line.Replace("</em>", "</i>");
-
-            // <strong> </strong>
-            line = line.Replace("<strong>", "<b>");
-            line = line.Replace("</strong>", "</b>");
-
-            // <ul>
-            // <li> </li>
-            // </ul>
-
-            // <ol>
-            // <li> </li>
-            // </ol>
-
-            // <a herf=" ... ">
-
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(line);
-            EditorGUILayout.EndHorizontal();
+            return root;
         }
     }
+}

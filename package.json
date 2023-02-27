@@ -6,7 +6,9 @@
   "unity": "2018.4",
   "documentationUrl": "https://github.com/mitay-walle/Unity3d-UICircleSegmented//blob/main/README.md",
   "licensesUrl": "https://github.com/mitay-walle/Unity3d-UICircleSegmented//blob/main/LICENSE.md",
-  "dependencies": { },
+  "dependencies": {
+	  "com.unity.modules.uielements": "1.0.0"
+  },
  "keywords": [
     "TextAsset",
 	"Text",
