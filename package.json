@@ -1,6 +1,6 @@
 {
   "name": "com.mitay-walle.text-asset-inspector-edit",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "displayName": "TextAsset Inspector Edit",
   "description": "Override TextAsset Inspector, allowing to immedietly edit its content",
   "unity": "2018.4",
