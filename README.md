@@ -4,5 +4,6 @@ Override TextAsset Inspector, allowing to immedietly edit its content
 
 # TODO:
 - undo
-- search
+- search/edit line
 - custom importer implementation
+- line number
