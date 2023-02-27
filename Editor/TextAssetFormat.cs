@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -34,6 +37,8 @@ namespace TextAssetInspectorEdit.Editor
         TextAssetEditor editor;
         TextAssetFormat format;
         TextField field;
+        TextField fieldFiltered;
+        Label numbers;
 
         public TextAssetFormatter(TextAssetFormat format, TextAssetEditor editor)
         {
@@ -44,13 +49,24 @@ namespace TextAssetInspectorEdit.Editor
 
         public void CreateInspectorGUI(VisualElement root)
         {
-            var layout = new VerticalLayout();
+            ToolbarSearchField search = new ToolbarSearchField();
+            root.Add(search);
+            search.RegisterCallback<ChangeEvent<string>>(Search);
+            HorizontalLayout layout = new HorizontalLayout();
             root.Add(layout);
-            var lineNumbers = new Label("Line Numbers");
-            layout.Add(lineNumbers);
-            Rect rect = lineNumbers.layout;
+            numbers = new Label("Line Numbers");
+            layout.Add(numbers);
+            Rect rect = numbers.layout;
             rect.width = 10;
-            lineNumbers.style.maxWidth = new StyleLength(45);
+            numbers.style.unityTextAlign = new StyleEnum<TextAnchor>(TextAnchor.UpperRight);
+            numbers.enableRichText = true;
+
+            fieldFiltered = new TextField()
+            {
+                multiline = true,
+                isDelayed = true
+            };
+            fieldFiltered.labelElement.visible = false;
 
             field = new TextField()
             {
@@ -58,21 +74,67 @@ namespace TextAssetInspectorEdit.Editor
                 isDelayed = true
             };
 
-            field.SetValueWithoutNotify((editor.target as TextAsset).text);
+            string text = (editor.target as TextAsset).text;
 
+            field.SetValueWithoutNotify(text);
             field.labelElement.visible = false;
-
+            fieldFiltered.labelElement.visible = false;
             field.RegisterCallback<ChangeEvent<string>>(OnChangeEvent);
-            layout.Add(field);
+            var box = new Box();
+            box.Add(field);
+            box.Add(fieldFiltered);
+            layout.Add(box);
 
             Undo.undoRedoEvent -= UndoRedoCallback;
             Undo.undoRedoEvent += UndoRedoCallback;
 
-            var button = new Button(Repaint);
-            button.text = "Repaint";
+            ValidateNumbers(text);
 
             editor.OnNeedRepaint -= Repaint;
             editor.OnNeedRepaint += Repaint;
+        }
+
+        void Search(ChangeEvent<string> evt)
+        {
+            string filter = evt.newValue.Trim();
+
+            if (string.IsNullOrEmpty(filter))
+            {
+                field.visible = true;
+                field.BringToFront();
+                fieldFiltered.visible = false;
+            }
+            else
+            {
+                field.visible = false;
+                fieldFiltered.visible = true;
+                field.BringToFront();
+            }
+
+            if (fieldFiltered.visible)
+            {
+                string text = (editor.target as TextAsset).text;
+                string[] lines = text.Split('\n').ToArray();
+
+                int count = lines.Length;
+                List<int> indexies = new List<int>();
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (lines[i].Contains(filter))
+                    {
+                        indexies.Add(i);
+                    }
+                }
+                text = string.Join('\n', lines.Where(line => line.Contains(filter)));
+
+                fieldFiltered.SetValueWithoutNotify(text);
+                ValidateNumbers(indexies);
+            }
+            else
+            {
+                ValidateNumbers(field.value);
+            }
         }
 
         void UndoRedoCallback(in UndoRedoInfo undo)
@@ -98,7 +160,30 @@ namespace TextAssetInspectorEdit.Editor
             EditorUtility.SetDirty(editor.target);
             EditorUtility.SetDirty(TextAssetEditor.SaveUndoContext);
             AssetDatabase.ImportAsset(path);
-            field.SetValueWithoutNotify(AssetDatabase.LoadAssetAtPath<TextAsset>(path).text);
+            string text = AssetDatabase.LoadAssetAtPath<TextAsset>(path).text;
+            field.SetValueWithoutNotify(text);
+            ValidateNumbers(evt.newValue);
+        }
+
+        private void ValidateNumbers(string text)
+        {
+            int count = text.Split('\n').Length;
+            int[] indexies = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                indexies[i] = i;
+            }
+            ValidateNumbers(indexies);
+        }
+
+        private void ValidateNumbers(IEnumerable<int> indexies)
+        {
+            if (indexies.Count() == 0)
+            {
+                return;
+            }
+            numbers.text = $"<mspace=0.7em>{string.Join(":\n", indexies)}:\n";
+            numbers.style.maxWidth = (indexies.Max().ToString().Length + 1) * 10;
         }
 
         public void Repaint()
@@ -109,12 +194,12 @@ namespace TextAssetInspectorEdit.Editor
         }
     }
 
-    public class VerticalLayout : VisualElement
+    public class HorizontalLayout : VisualElement
     {
-        public VerticalLayout()
+        public HorizontalLayout()
         {
-            name = nameof(VerticalLayout);
-            style.flexDirection = FlexDirection.Column;
+            name = nameof(HorizontalLayout);
+            style.flexDirection = FlexDirection.Row;
             style.flexGrow = 1;
         }
     }
