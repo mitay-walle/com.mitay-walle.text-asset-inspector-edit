@@ -45,14 +45,57 @@ namespace TextAssetInspectorEdit.Editor
 
             field.RegisterCallback<ChangeEvent<string>>(OnChangeEventLocal);
             root.Add(field);
+
+            void UndoRedoCallbackLocal(in UndoRedoInfo undo)
+            {
+                UndoRedoCallback(undo, $"edit TextAsset {editor.target.name}", editor, field);
+            }
+            Undo.undoRedoEvent -= UndoRedoCallbackLocal;
+            Undo.undoRedoEvent += UndoRedoCallbackLocal;
+
+            var button = new Button(RepaintLocal);
+            button.text = "Repaint";
+            root.Add(button);
+
+            void RepaintLocal()
+            {
+                Repaint(editor, field);
+            }
+
+            editor.OnNeedRepaint -= RepaintLocal;
+            editor.OnNeedRepaint += RepaintLocal;
+        }
+
+        void UndoRedoCallback(in UndoRedoInfo undo, string undoName, TextAssetEditor editor, TextField field)
+        {
+            if (undo.undoName == undoName)
+            {
+                string path = AssetDatabase.GetAssetPath(editor.target);
+
+                string text = TextAssetEditor.SaveUndoContext.SavedText;
+                field.value = text;
+                File.WriteAllText(path, text);
+                EditorUtility.SetDirty(editor.target);
+                AssetDatabase.ImportAsset(path);
+            }
         }
 
         void OnChangeEvent(ChangeEvent<string> evt, TextAssetEditor editor, TextField field)
         {
+            TextAssetEditor.SaveUndoContext.SavedText = (editor.target as TextAsset).text;
+            Undo.RecordObject(TextAssetEditor.SaveUndoContext, $"edit TextAsset {editor.target.name}");
             string path = AssetDatabase.GetAssetPath(editor.target);
             File.WriteAllText(path, evt.newValue);
+            EditorUtility.SetDirty(editor.target);
+            EditorUtility.SetDirty(TextAssetEditor.SaveUndoContext);
             AssetDatabase.ImportAsset(path);
+            field.SetValueWithoutNotify(AssetDatabase.LoadAssetAtPath<TextAsset>(path).text);
+        }
 
+        public void Repaint(TextAssetEditor editor, TextField field)
+        {
+            string path = AssetDatabase.GetAssetPath(editor.target);
+            AssetDatabase.ImportAsset(path);
             field.SetValueWithoutNotify(AssetDatabase.LoadAssetAtPath<TextAsset>(path).text);
         }
     }
