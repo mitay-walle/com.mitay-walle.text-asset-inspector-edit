@@ -101,14 +101,14 @@ namespace TextAssetInspectorEdit.Editor
             if (string.IsNullOrEmpty(filter))
             {
                 field.visible = true;
-                field.BringToFront();
+                field.SendToBack();
                 fieldFiltered.visible = false;
             }
             else
             {
                 field.visible = false;
                 fieldFiltered.visible = true;
-                field.BringToFront();
+                fieldFiltered.SendToBack();
             }
 
             if (fieldFiltered.visible)
