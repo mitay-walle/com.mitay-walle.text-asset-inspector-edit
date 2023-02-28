@@ -7,6 +7,7 @@ Override TextAsset Inspector, allowing to immedietly edit its content
 - edit
 - line numbers
 - case sensetive filter visible lines
+- .md files only
 
 # TODO:
 - undo
