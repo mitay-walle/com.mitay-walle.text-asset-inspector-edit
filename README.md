@@ -14,3 +14,5 @@ Override TextAsset Inspector, allowing to immedietly edit its content
 - edit filtered lines
 - custom importer implementation
 - non-case-sensetive filtering
+- more supported formats
+- settings
