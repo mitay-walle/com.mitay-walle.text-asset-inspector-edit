@@ -6,9 +6,10 @@ Override TextAsset Inspector, allowing to immedietly edit its content
 - full text view
 - edit
 - line numbers
-- filter visible lines
+- case sensetive filter visible lines
 
 # TODO:
 - undo
 - edit filtered lines
 - custom importer implementation
+- non-case-sensetive filtering
